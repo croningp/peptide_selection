@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pkl
+*.pickle
+.venv/
+venv/
+env/
+.env
+.env.*
+cache/
+src/labbook.csv
+MolecularAssembly/
