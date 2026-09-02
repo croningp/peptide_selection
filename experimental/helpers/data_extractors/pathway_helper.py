@@ -83,6 +83,7 @@ class StringToPaths:
         self,
         config: AssemblyConfig | None = None,
         sequences: dict[str, list[str]] | None = None,
+        parquet_path: str | Path | None = None,
         # Add backward compatibility parameters
         parent_folder_path: str | None = None,
         confidence: float | None = None,
@@ -96,6 +97,9 @@ class StringToPaths:
         Args:
             config: Configuration for AssemblyGo execution
             sequences: Dictionary mapping group names to lists of sequences
+            parquet_path: Optional path to a Parquet table (columns: sequence,
+                assembly_index, node_list, edge_list) used as a fast lookup
+                before falling back to on-disk .txt logs / AssemblyGo.
             parent_folder_path: Path for assembly outputs (backward compatibility)
             confidence: Confidence level (backward compatibility)
             assembly_go_path: Path to AssemblyGo executable (backward compatibility)
@@ -133,6 +137,15 @@ class StringToPaths:
         # Convert paths to Path objects
         self._assembly_go_path = Path.home() / self.config.assembly_go_path
         self._parent_folder_path = Path(self.config.parent_folder_path)
+
+        # Optional fast-path lookup table, opt-in and backward compatible
+        self._parquet_lookup: dict[str, dict] = {}
+        if parquet_path is not None and Path(parquet_path).exists():
+            self._parquet_lookup = (
+                pd.read_parquet(parquet_path)
+                .set_index("sequence")
+                .to_dict(orient="index")
+            )
 
     @property
     def assembly_go_path(self) -> Path:
@@ -203,16 +216,35 @@ class StringToPaths:
     def parse_assembly_output(
         self, sequence: str, check_if_file_exists: bool = False
     ) -> AssemblyPathway:
-        """Parse AssemblyGo output for a sequence."""
+        """Parse AssemblyGo output for a sequence.
+
+        Looks up the sequence in three tiers: the Parquet lookup table
+        (if provided), then an existing .txt log on disk, then finally
+        runs AssemblyGo to create the .txt log if neither is available.
+        """
+        cached = self._parquet_lookup.get(sequence)
+        if cached is not None:
+            return AssemblyPathway(
+                sequence=sequence,
+                assembly_index=cached["assembly_index"],
+                node_list=np.array(cached["node_list"]),
+                edge_list=np.array(cached["edge_list"]),
+            )
+
         file_path = self.get_output_path(sequence)
 
         # This was added ex post when I started manipulating the networkX
         # graphs. Some nodes might not be observed and not generated in the
         # union, for some reason it happens for single letters. So this is
         # a quick fix.
-        if check_if_file_exists and not file_path.exists():
-            print(f"Output file does not exist for {sequence}")
-            return AssemblyPathway.empty(sequence)
+        if not file_path.exists():
+            if check_if_file_exists:
+                print(f"Output file does not exist for {sequence}")
+                return AssemblyPathway.empty(sequence)
+            # Not cached anywhere yet: compute it now (writes the .txt log)
+            self.calculate_assembly_for_individual_sequence(sequence)
+            if not file_path.exists():
+                return AssemblyPathway.empty(sequence)
 
         construction_object = sp.generate_string_pathway(file_path)
         assembly_index = construction_object.ma

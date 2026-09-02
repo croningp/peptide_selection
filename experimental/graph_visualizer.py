@@ -537,25 +537,36 @@ class DataExtractor:
     Simplifies the workflow of getting pathways and creating graphs.
     """
     
-    def __init__(self, df: pd.DataFrame, parent_folder_path: str = "../MolecularAssembly/"):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        parent_folder_path: str = "../MolecularAssembly/",
+        parquet_path: str | None = None,
+    ):
         """
         Initialize the data extractor.
-        
+
         Args:
             df: DataFrame containing name, all_nodes, and observed_nodes columns
             parent_folder_path: Path to the parent folder for StringToPaths
+            parquet_path: Optional path to a Parquet pathway table used as a
+                fast lookup before falling back to .txt logs / AssemblyGo.
         """
         self.df = df
         self.parent_folder_path = parent_folder_path
+        self.parquet_path = parquet_path
         self._string_to_paths = None
-    
+
     @property
     def string_to_paths(self):
         """Lazy loading of StringToPaths instance."""
         if self._string_to_paths is None:
             try:
                 from helpers.data_extractors.pathway_helper import StringToPaths
-                self._string_to_paths = StringToPaths(parent_folder_path=self.parent_folder_path)
+                self._string_to_paths = StringToPaths(
+                    parent_folder_path=self.parent_folder_path,
+                    parquet_path=self.parquet_path,
+                )
             except ImportError:
                 raise ImportError(
                     "Could not import StringToPaths. Please ensure the pathway_helper module is available."
@@ -666,6 +677,7 @@ def extract_and_visualize(
     df: pd.DataFrame,
     name: str,
     parent_folder_path: str = "../MolecularAssembly/",
+    parquet_path: str | None = None,
     observed_color: str = 'lightcoral',
     unobserved_color: str = 'gray',
     node_size: float | str = 'auto',
@@ -684,6 +696,8 @@ def extract_and_visualize(
         df: DataFrame containing name, all_nodes, and observed_nodes columns
         name: Name to search for (e.g., 'ripper_ARM_07_07')
         parent_folder_path: Path to the parent folder for StringToPaths
+        parquet_path: Optional path to a Parquet pathway table used as a
+            fast lookup before falling back to .txt logs / AssemblyGo.
         observed_color: Color for observed nodes
         unobserved_color: Color for unobserved nodes
         node_size: Node sizing method or fixed size
@@ -717,7 +731,7 @@ def extract_and_visualize(
         # Note: Unobserved nodes will appear on the left, observed on the right
     """
     # Extract data
-    extractor = DataExtractor(df, parent_folder_path)
+    extractor = DataExtractor(df, parent_folder_path, parquet_path=parquet_path)
     df_paths, observed_nodes, graph = extractor.extract_data_by_name(name)
     
     # Create visualization
