@@ -1,12 +1,11 @@
-# peptide_selection
+# Quantifying Directedness in Chemical Reaction Networks Using Assembly Theory
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Code for:
+Code for the paper.
 
-> **Quantifying Directedness in Chemical Reaction Networks Using Assembly Theory**
-> Michael Jirasek, Abhishek Sharma, Mary Wong, Jennifer Munro, Leroy Cronin\*
-> School of Chemistry, University of Glasgow
+Michael Jirasek, Abhishek Sharma, Mary Wong, Jennifer Munro, Leroy Cronin\*
+School of Chemistry, University of Glasgow
 
 ## About the paper
 
