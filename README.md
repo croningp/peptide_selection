@@ -55,7 +55,3 @@ HPLC-MS/MS raw data
 ## License
 
 Released under the [MIT License](LICENSE).
-
-## Contact
-
-Corresponding author: Leroy Cronin (Lee.Cronin@glasgow.ac.uk), School of Chemistry, University of Glasgow.
