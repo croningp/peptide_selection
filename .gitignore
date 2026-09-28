@@ -10,3 +10,6 @@ env/
 cache/
 src/labbook.csv
 MolecularAssembly/
+*.zip
+PeptideSimData.zip
+.DS_Store
